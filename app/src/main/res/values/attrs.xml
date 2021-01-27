@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="TickView">
+        
+        <attr name="color" format="color"/>
+        <attr name="tick_area_width" format="dimension"/>
+        <attr name="stroke_width" format="dimension"/>
+        <attr name="text" format="string"/>
+
+    </declare-styleable>
+
+</resources>
