@@ -29,6 +29,9 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
     private var showTick: Boolean = false
     private var showLoading: Boolean = false
 
+    private var runningLoadingAnimate = false
+    private var runningTickAnimate = false
+
     var textContent: String = ""
         set(value) {
             field = value
@@ -76,6 +79,23 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
             interpolator = LinearInterpolator()
             repeatMode = ValueAnimator.RESTART
             repeatCount = ValueAnimator.INFINITE
+
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationStart(animation: Animator?) {
+                    super.onAnimationStart(animation)
+                    runningLoadingAnimate = true
+                }
+
+                override fun onAnimationEnd(animation: Animator?) {
+                    super.onAnimationEnd(animation)
+                    runningLoadingAnimate = false
+                }
+
+                override fun onAnimationCancel(animation: Animator?) {
+                    super.onAnimationCancel(animation)
+                    runningLoadingAnimate = false
+                }
+            })
         }
     }
 
@@ -143,7 +163,6 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
 
     private var showLoadingAnimatorSet: AnimatorSet? = null
     private var showTickAnimatorSet: AnimatorSet? = null
-    //  private var shrinkAnimatorSet: AnimatorSet ? = null
 
     /**
      * 打钩绘制动画
@@ -189,14 +208,15 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
         }
     }
 
-    override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
-        //  showLoadingView()
-        //  postDelayed({showTickView()}, 2000L)
-    }
-
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        stopAllAnimator()
+    }
+
+    /**
+     * 停止所有的动画
+     */
+    private fun stopAllAnimator() {
         showLoadingAnimatorSet?.cancel()
         showTickAnimatorSet?.cancel()
         tickDistanceAnimator?.cancel()
@@ -323,6 +343,9 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
      * 绘制圆圈
      */
     private fun drawCircle(canvas: Canvas) {
+        if (!showLoading) {
+            return
+        }
         canvas.drawArc(arcRectF, startAngle, sweepAngle, false, paint.apply {
             style = Paint.Style.STROKE
             color = viewColor
@@ -373,13 +396,21 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
             }
     }
 
+    /**
+     * 显示loading视图
+     */
     fun showLoadingView() {
         if (showLoadingAnimatorSet == null) {
             showLoadingAnimatorSet = AnimatorSet().apply {
                 playTogether(turnAroundAnimator, alphaShowAnimator)
             }
         }
-        showLoadingAnimatorSet?.start()
+
+        showLoadingAnimatorSet?.let {
+            if (!it.isRunning) {
+                it.start()
+            }
+        }
     }
 
     /**
@@ -392,21 +423,27 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
                 playTogether(alphaHideAnimator, tickDistanceAnimator)
             }
             showTickAnimatorSet = AnimatorSet().apply {
-                playSequentially(togetherSet/*, wholeAlphaAnimator, shrinkAnimator*/)
+                playSequentially(togetherSet, wholeAlphaAnimator, shrinkAnimator)
             }
         }
         showTickAnimatorSet?.start()
     }
 
-
+    /**
+     * 重置View状态
+     */
     fun resetTickView() {
+        stopAllAnimator()
+
         showTick = false
         showLoading = false
+        runningLoadingAnimate = false
 
         val lp = layoutParams
         lp.width = ViewGroup.LayoutParams.WRAP_CONTENT
         layoutParams = lp
         loadingAlpha = 0
+        tickPathDistance = 0f
         alpha = 1f
     }
 
@@ -417,7 +454,10 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
         saveState.textContent = this.textContent
         saveState.showTick = this.showTick
         saveState.showLoading = this.showLoading
+        saveState.runningLoadingAnimate = this.runningLoadingAnimate
+        saveState.startAngle = this.startAngle
         saveState.tickPathDistance = this.tickPathDistance
+        saveState.loadingAlpha = this.loadingAlpha
         return saveState
     }
 
@@ -434,7 +474,14 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
         this.textContent = saveSate.textContent ?: ""
         this.showTick = saveSate.showTick
         this.showLoading = saveSate.showLoading
+        this.runningLoadingAnimate = saveSate.runningLoadingAnimate
         this.tickPathDistance = saveSate.tickPathDistance
+        this.startAngle = saveSate.startAngle
+        this.loadingAlpha = saveSate.loadingAlpha
+
+        if (runningLoadingAnimate) {
+            showLoadingView()
+        }
     }
 
     class SaveSate : BaseSavedState {
@@ -442,7 +489,10 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
         var textContent: String ? = null
         var showTick: Boolean = false
         var showLoading: Boolean = false
+        var runningLoadingAnimate: Boolean = false
+        var startAngle: Float = 0f
         var tickPathDistance: Float = 0f
+        var loadingAlpha: Int = 0
 
         constructor(superState: Parcelable?) : super(superState)
 
@@ -450,15 +500,21 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
             textContent = source.readString()
             showTick = source.readByte().toInt() != 0
             showLoading = source.readByte().toInt() != 0
+            runningLoadingAnimate = source.readByte().toInt() != 0
+            startAngle = source.readFloat()
             tickPathDistance = source.readFloat()
+            loadingAlpha = source.readInt()
         }
 
         override fun writeToParcel(out: Parcel?, flags: Int) {
             super.writeToParcel(out, flags)
             out?.writeByte(if (showTick) 1.toByte() else 0.toByte())
             out?.writeByte(if (showLoading) 1.toByte() else 0.toByte())
+            out?.writeByte(if (runningLoadingAnimate) 1.toByte() else 0.toByte())
             out?.writeString(textContent)
+            out?.writeFloat(startAngle)
             out?.writeFloat(tickPathDistance)
+            out?.writeInt(loadingAlpha)
         }
 
         companion object {

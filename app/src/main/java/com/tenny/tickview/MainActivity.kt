@@ -20,8 +20,14 @@ class MainActivity : AppCompatActivity() {
 
         tick_view.setOnClickListener {
             tick_view.showLoadingView()
-            tick_view.postDelayed({tick_view.showTickView()}, 0)
-        //    tick_view.postDelayed({tick_view.resetTickView()}, 4000)
+        }
+
+        finish_btn.setOnClickListener {
+            tick_view.showTickView()
+        }
+
+        reset_btn.setOnClickListener {
+            tick_view.resetTickView()
         }
     }
 
