@@ -12,20 +12,16 @@ import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
 
-    private val animateDrawable : AnimatedVectorDrawable by lazy {
-        ContextCompat.getDrawable(this, R.drawable.avd_anim) as AnimatedVectorDrawable
-    }
-
-    private var timeToReverse :Boolean = false;
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
 
+
         tick_view.setOnClickListener {
             tick_view.showLoadingView()
-            tick_view.postDelayed({tick_view.showTickView()}, 10000)
+            tick_view.postDelayed({tick_view.showTickView()}, 0)
+        //    tick_view.postDelayed({tick_view.resetTickView()}, 4000)
         }
     }
 
