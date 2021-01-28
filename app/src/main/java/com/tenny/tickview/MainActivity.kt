@@ -22,47 +22,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        initFollowAnimate()
 
-        follow_layout.setOnClickListener {
-            changeToVectorAnimate()
-        }
-
-    }
-
-    private fun changeToVectorAnimate() {
-        followAnimate.let {
-            if (timeToReverse) {
-                it.reverse()
-            } else {
-               it.start()
-            }
-            timeToReverse = !this.timeToReverse
-        }
-    }
-
-    private lateinit var followAnimate: AnimatorSet
-
-    private fun initFollowAnimate() {
-
-
-        var followTvAnimate = ObjectAnimator.ofFloat(follow_tv, "alpha", 1f, 0f)
-        var followIvAnimate = ObjectAnimator.ofFloat(follow_tick, "alpha", 0f, 1f)
-
-        followAnimate = AnimatorSet().apply {
-            this.playTogether(followTvAnimate, followIvAnimate)
-            this.addListener(object : AnimatorListenerAdapter(){
-                override fun onAnimationEnd(animation: Animator?, isReverse: Boolean) {
-                    super.onAnimationEnd(animation, isReverse)
-
-                    if (isReverse) {
-                        follow_tick.setImageDrawable(null)
-                    } else {
-                        follow_tick.setImageDrawable(animateDrawable)
-                        animateDrawable.start()
-                    }
-                }
-            })
+        tick_view.setOnClickListener {
+            tick_view.showLoadingView()
+            tick_view.postDelayed({tick_view.showTickView()}, 10000)
         }
     }
 

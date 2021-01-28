@@ -7,6 +7,7 @@
         <attr name="tick_area_width" format="dimension"/>
         <attr name="stroke_width" format="dimension"/>
         <attr name="text" format="string"/>
+        <attr name="textSize" format="dimension"/>
 
     </declare-styleable>
 

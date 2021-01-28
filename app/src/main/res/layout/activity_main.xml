@@ -28,48 +28,27 @@
             android:textSize="12dp"
             android:textColor="#eeeeee"/>
 
-        <FrameLayout
-            android:id="@+id/follow_layout"
+        <com.tenny.tickview.widget.TickView
+            android:id="@+id/tick_view"
             android:layout_width="wrap_content"
             android:layout_height="20dp"
+            app:stroke_width="2dp"
+            android:paddingStart="6dp"
+            android:paddingEnd="6dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
             android:layout_marginStart="5dp"
             android:layout_marginEnd="2.5dp"
-            android:minWidth="37dp"
             android:background="@drawable/bg_follow_btn"
+            app:text="关注"
+            app:textSize="12dp"
             app:layout_constraintStart_toEndOf="@id/name_tv"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <TextView
-                android:id="@+id/follow_tv"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="关注"
-                android:layout_gravity="center"
-                android:textColor="#ffffff"
-                android:textSize="12dp"/>
-
-            <ImageView
-                android:id="@+id/follow_tick"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:alpha="0" />
-
-        </FrameLayout>
+            app:layout_constraintEnd_toEndOf="parent"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <com.tenny.tickview.widget.TickView
-        android:id="@+id/tick_view"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        app:stroke_width="10dp"
-        app:text="关注"
-        app:layout_constraintTop_toBottomOf="@id/follow_container"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

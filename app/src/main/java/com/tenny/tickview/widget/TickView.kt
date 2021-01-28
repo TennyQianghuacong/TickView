@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.*
 import android.text.TextUtils
 import android.util.AttributeSet
+import android.util.Log
 import android.view.View
 import android.view.animation.LinearInterpolator
 import com.tenny.tickview.R
@@ -22,9 +23,16 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
     private var tickAreaWidth : Float = 16.dp2px
     private var loadingRadius = tickAreaWidth / 3.2f
 
-    private var drawTick: Boolean = false
+    private var showTick: Boolean = false
+    private var showLoading: Boolean = false
 
     private var textContent: String = ""
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    private var textSize: Float = 12.dp2px
         set(value) {
             field = value
             invalidate()
@@ -76,7 +84,8 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
         addListener(object : AnimatorListenerAdapter(){
             override fun onAnimationStart(animation: Animator?) {
                 super.onAnimationStart(animation)
-                drawTick = false
+                showTick = false
+                showLoading = true
             }
         })
     }
@@ -84,9 +93,19 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
     private val alphaHideAnimator: ObjectAnimator = ObjectAnimator.ofInt(this, "alpha", 255, 0).apply {
         duration = 300L
         addListener(object : AnimatorListenerAdapter(){
+            override fun onAnimationStart(animation: Animator?) {
+                super.onAnimationStart(animation)
+                alphaShowAnimator.cancel()
+            }
+
             override fun onAnimationEnd(animation: Animator?) {
                 super.onAnimationEnd(animation)
-                drawTick = true
+                showTick = true
+                showLoading = false
+
+                showLoadingAnimatorSet?.pause()
+               // alphaShowAnimator.end()
+                turnAroundAnimator.end()
             }
         })
     }
@@ -107,6 +126,7 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
         strokeCap = Paint.Cap.ROUND
         strokeJoin = Paint.Join.ROUND
     }
+    private val fontMetrics = Paint.FontMetrics()
 
     private val arcRectF: RectF = RectF()
 
@@ -129,6 +149,7 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
             tickAreaWidth = typedArray.getDimension(R.styleable.TickView_tick_area_width, 16.dp2px)
             loadingRadius = tickAreaWidth / 3.2f
 
+            textSize = typedArray.getDimension(R.styleable.TickView_textSize, 12.dp2px)
             val content = typedArray.getString(R.styleable.TickView_text)
             textContent = content ?: ""
 
@@ -138,8 +159,8 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-     //   showLoadingView()
-     //   postDelayed({showTickView()}, 2000L)
+      //  showLoadingView()
+      //  postDelayed({showTickView()}, 2000L)
     }
 
     override fun onDetachedFromWindow() {
@@ -151,16 +172,29 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
 
-        val widthMeasureExpect = measureEdgeSize(widthMeasureSpec)
-        val heightMeasureExpect = measureEdgeSize(heightMeasureSpec)
+        val textMeasureExpect = FloatArray(2)
+        measureText(textMeasureExpect)
+
+        val widthMeasureExpect = measureEdgeSize(widthMeasureSpec, textMeasureExpect[0])
+        val heightMeasureExpect = measureEdgeSize(heightMeasureSpec, textMeasureExpect[1])
 
         setMeasuredDimension(widthMeasureExpect, heightMeasureExpect)
     }
 
     /**
+     * 测量字符串
+     */
+    private fun measureText(textMeasureSpec: FloatArray) {
+        paint.textSize = textSize
+        paint.getFontMetrics(fontMetrics)
+        textMeasureSpec[0] = paint.measureText(textContent) + max(paddingStart + paddingEnd, paddingLeft + paddingRight)
+        textMeasureSpec[1] = paint.fontSpacing + paddingTop + paddingBottom
+    }
+
+    /**
      * 测量边距
      */
-    private fun measureEdgeSize(edgeMeasureSpec: Int) : Int {
+    private fun measureEdgeSize(edgeMeasureSpec: Int, textMeasureExpect: Float) : Int {
         val measureSpecSize = MeasureSpec.getSize(edgeMeasureSpec)
 
         return when(MeasureSpec.getMode(edgeMeasureSpec)) {
@@ -168,7 +202,7 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
                 measureSpecSize
             }
             else -> {
-                min(measureSpecSize, tickAreaWidth.toInt())
+                min(measureSpecSize, max(tickAreaWidth, textMeasureExpect).toInt())
             }
         }
     }
@@ -210,7 +244,7 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        drawBackGround(canvas)
+ //       drawBackGround(canvas)
         drawText(canvas)
         drawCircle(canvas)
         drawTick(canvas)
@@ -231,14 +265,18 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
      * 绘制文字
      */
     private fun drawText(canvas: Canvas) {
-        if (TextUtils.isEmpty(textContent)) {
+        if (TextUtils.isEmpty(textContent) || showTick || showLoading) {
             return
         }
-
-        paint.apply {
-            color = Color.WHITE
+        canvas.drawText(textContent, width  / 2f, (height - fontMetrics.descent - fontMetrics.ascent) / 2f, paint.apply {
+            style = Paint.Style.FILL
+            color = viewColor
             alpha = 255
-        }
+            textSize = this@TickView.textSize
+            textAlign = Paint.Align.CENTER
+        })
+
+
     }
 
     /**
@@ -247,7 +285,7 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
     private fun drawCircle(canvas: Canvas) {
         canvas.drawArc(arcRectF, startAngle, sweepAngle, false, paint.apply{
             style = Paint.Style.STROKE
-            color = Color.WHITE
+            color = viewColor
             alpha = this@TickView.alpha
             strokeWidth = this@TickView.strokeWidth
         })
@@ -258,14 +296,14 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
      * 绘制提勾
      */
     private fun drawTick(canvas: Canvas) {
-        if (!drawTick) {
+        if (!showTick) {
             return
         }
         drawTickPath.reset()
         pathMeasure.getSegment(0f, tickPathDistance, drawTickPath, true)
         canvas.drawPath(drawTickPath, paint.apply {
             style = Paint.Style.STROKE
-            color = Color.WHITE
+            color = viewColor
             strokeWidth = this@TickView.strokeWidth
             alpha = 255
         })
@@ -288,6 +326,7 @@ class TickView(context: Context?, attrs: AttributeSet?) : View(context, attrs) {
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator?) {
                     super.onAnimationEnd(animation)
+                    Log.e("QHC", "alpha: $alpha")
                 }
             })
         }
